@@ -1,0 +1,52 @@
+{
+  "name": "dsh-cyrene-theme",
+  "version": "0.4.1",
+  "description": "昔涟 (Cyrene) 主题 + 桌宠 for the dsh web GUI — pearl-white pink theme, Live2D desktop pet, particle background, gradient, and a collapsible config card. [本地变体：默认不显示桌宠，主题与粒子/渐变保留] Ported from Cyrene-Agent (MIT) with the Live2D model creator's permission.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "cordis.patch.yml"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-runtime"
+      ],
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "theme",
+    "pet",
+    "live2d",
+    "cyrene"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/under-the-ocean/dsh-plugin-cyrene.git"
+  },
+  "bugs": {
+    "url": "https://github.com/under-the-ocean/dsh-plugin-cyrene/issues"
+  },
+  "homepage": "https://github.com/under-the-ocean/dsh-plugin-cyrene#readme"
+}

@@ -1,0 +1,4 @@
+# dsh-cyrene-hero bundle patch: mounts the host half (the /cyrene-hero asset route).
+- insert:
+    - id: cyrene-hero
+      name: 'dsh-cyrene-hero'

@@ -1,0 +1,120 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # engines 声明的是 >=22。22 与 24 都跑一遍 —— 测试命令的目录/glob 解析
+        # 在这两个大版本上表现不同，正是这里最容易踩坑的地方。
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 本仓库的运行时代码只用 node: 内置模块，测试也只用 node:test ——
+      # 所以**不需要 npm install**（也因此没有 lockfile 可装）。
+      - name: 语法检查
+        run: npm run harness:check
+
+      - name: 单元测试
+        run: npm test
+
+  # ── Windows ────────────────────────────────────────────────────────────────
+  #
+  # 这个 job 存在的唯一理由：**作者没有自己的电脑，整套东西是在 DSH App（Android）
+  # 里做的** —— 本地没有 Windows 也没有 PowerShell，所有"只在 Windows 上才暴露"
+  # 的问题都只能靠用户反馈来回试，连试三轮。
+  #
+  # windows-latest 对公开仓库免费。也就是说：**不需要有电脑，就能在真实 Windows 上
+  # 自动跑测试。** 这一步是替掉"交给别人改"的 —— 别人不用来改，CI 会先告诉我们
+  # 错在哪，而且以后任何跨平台回归都会在 PR 上直接红掉。
+  #
+  # 每一步都对应一个真实踩过的坑，不是凑数的。见 docs/windows.md。
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 用 bash（runner 自带 Git Bash）而不是 pwsh：要验的是 **Node 脚本在 Windows
+      # 上的行为**（盘符、路径分隔符、入口判断），不是 PowerShell 语法。用 bash 还能
+      # 与上面的 ubuntu job 保持同一套写法。
+      - name: 语法检查
+        shell: bash
+        run: npm run harness:check
+
+      - name: 单元测试
+        shell: bash
+        run: npm test
+
+      # 坑：入口判断曾写成 `import.meta.url === \`file://${process.argv[1]}\`` ——
+      # 在 Windows 上永不成立（argv[1] 是 C:\...，而 import.meta.url 是 file:///C:/...），
+      # 后果是 **exit 0、零输出、零报错**。只断言退出码是抓不到的，必须断言"真的吐了东西"。
+      #
+      # 写法上刻意**落盘再断言**，不用 `echo "$out" | grep -q ...`：
+      # grep -q 命中第一行就退出，写入端会拿到 EPIPE，而 `set -o pipefail` 会把整条
+      # 管道判为失败 —— 输出越大越容易踩（Linux 上缓冲区够大时侥幸不挂）。
+      # 失败的诊断信息也一并留在日志里，不用再靠猜。
+      - name: 声明导出必须真的有输出（Windows 上曾静默零输出）
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/export-preset-declarations.mjs > decl.yml
+          rc=$?
+          set -e
+          echo "生成器退出码 = $rc，字节数 = $(wc -c < decl.yml)，行数 = $(wc -l < decl.yml)"
+          if [ "$rc" -ne 0 ]; then
+            echo "✗ 生成器退出码非 0（入口判断或 main() 在 Windows 上出错了）"
+            head -3 decl.yml | od -c | head -5
+            exit 1
+          fi
+          if [ ! -s decl.yml ]; then
+            echo "✗ 生成器输出为零字节 —— 入口判断在 Windows 上没触发"
+            exit 1
+          fi
+          if ! grep -q '^- insert:$' decl.yml; then
+            echo "✗ 输出缺少 - insert: 包装。头三行（od 显示行尾符）："
+            head -3 decl.yml | od -c | head -5
+            exit 1
+          fi
+          # 单个预设也要能出：CLI 参数那条路同样要过
+          node scripts/export-preset-declarations.mjs cyrene-work > one.yml
+          if [ ! -s one.yml ] || ! grep -q '^- insert:$' one.yml; then
+            echo "✗ 带参数的 CLI 那条路产出不对"
+            exit 1
+          fi
+          echo "✓ 生成器在 Windows 上正常产出（$(wc -l < decl.yml) 行 / 单预设 $(wc -l < one.yml) 行）"
+
+      # 坑：Windows 路径、盘符、DSH_HOME 的写法。用临时 DSH_HOME 试装，
+      # 跑通 安装 → 幂等复跑 → 卸载 三条。绝不能用真实 ~/.dsh。
+      - name: install.mjs 在 Windows 上试装（临时 DSH_HOME）
+        shell: bash
+        env:
+          DSH_HOME: ${{ runner.temp }}/dsh-ci
+        run: |
+          set -euo pipefail
+          echo "DSH_HOME=$DSH_HOME"
+          node scripts/install.mjs
+          [ -f "$DSH_HOME/.agent-presets/chat/agent.cordis.yml" ] || { echo "✗ chat 预设没装上"; exit 1; }
+          [ -f "$DSH_HOME/.agent-presets/cyrene-work/agent.cordis.yml" ] || { echo "✗ cyrene-work 预设没装上"; exit 1; }
+          # 同样落盘再查，不接管道（理由见上一步）
+          node scripts/install.mjs > rerun.log
+          grep -q "已是最新" rerun.log || { echo "✗ 复跑没有报「已是最新」（幂等性坏了）"; cat rerun.log; exit 1; }
+          node scripts/install.mjs --uninstall
+          [ ! -e "$DSH_HOME/.agent-presets/chat" ] || { echo "✗ 卸载没清掉"; exit 1; }
+          echo "✓ 安装 / 幂等 / 卸载 三条都过"

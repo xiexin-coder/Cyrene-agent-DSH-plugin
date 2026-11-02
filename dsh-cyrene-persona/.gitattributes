@@ -1,0 +1,35 @@
+# 行尾符。目前只剩一条规则 —— 因为本仓库已经**没有任何 Windows 脚本**了。
+#
+# ## 为什么没有 Windows 脚本
+#
+# 曾经有 `scripts/install.ps1` 与 `install.bat`，删掉了。原因很直接：
+# 作者没有自己的电脑，整个项目是在 DSH App（Android）里做的 —— 开发环境里
+# **没有 Windows、也没有 PowerShell**。那两个脚本无法实测，只能靠用户反馈来回试，
+# 连试三轮仍未在真机跑通（LF 行尾、跨行管道、here-string、`if` 当表达式赋值、
+# 以及"`.gitattributes` 管不了 blob"……每轮都在同一个坑里打转）。
+#
+# 与其留一条**没人能验证**的路，不如只留一条能跑通的：Windows 用户用
+# `node scripts/install.mjs`，跨平台、无 shell 依赖，且已实测过安装/幂等/卸载。
+#
+# ## 将来若真的恢复 Windows 脚本
+#
+# 请先读 AGENTS.md 的「Windows 已知坑」一节 —— 那里记着五条真实踩过的坑。
+# 并且把下面这两行加回来，**必须加在文件最后**（gitattributes 以最后一条匹配的规则为准，
+# 写在 `* text=auto eol=lf` 前面会被它盖掉）：
+#
+#   *.ps1 -text      # ← 必须是 -text（blob 里就得是 CRLF），不是 text eol=crlf
+#   *.bat -text      #    eol=crlf 只转检出，blob 里仍是 LF，拉过代码的人拿不到修复
+#
+# 默认行尾一律 LF（含 .md / .mjs / .yml 等所有文本文件）。
+#
+# 为什么要有这条：CI 的 windows-latest job 上线当天，检出用的是 Windows 默认的
+# `core.autocrlf=true`，世界书那 61 条 .md 全变成 CRLF，按 `\n` 切行后每个字段尾部
+# 都挂上 `\r` —— 触发词永远匹配不上，世界书**整条静默失效**（7 条测试同时红）。
+#
+# 解析层已经改成容错 CRLF（worldbook/parse.mjs），这条是第二道防线：
+# 让所有平台的检出保持同一种行尾，免得文件里再散落不可见的 `\r`。
+* text=auto eol=lf
+
+# POSIX 原生执行 —— 必须 LF。显式写出来，别只依赖上面那行（后人删掉上面那行时
+# 这条还得在）。
+*.sh text eol=lf

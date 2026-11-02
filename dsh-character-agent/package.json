@@ -1,0 +1,27 @@
+{
+  "name": "dsh-character-agent",
+  "version": "0.3.1",
+  "description": "Multi-character appearance framework for the DSH Web GUI: one character per session mode (skin accent, hero picture, wallpaper, music, font, bubble/code-block opacity and a starfield particle layer) plus a gated whale-girl pet. 0.3.1 adds hand-over: a character may delegate the whole look to a skin-center skin and paint nothing itself.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}

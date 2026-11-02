@@ -1,0 +1,26 @@
+{
+  "name": "dsh-cyrene-hero",
+  "version": "0.16.0",
+  "description": "Cyrene look for the DSH Web GUI: hero image + greeting, unified full-window wallpaper (images or video) with transparent sidebars, background music and conversation typography.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}

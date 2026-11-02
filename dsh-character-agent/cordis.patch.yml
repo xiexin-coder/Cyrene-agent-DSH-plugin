@@ -1,0 +1,18 @@
+# dsh-character-agent bundle patch: mounts the host half.
+#
+# The host half owns the same four asset routes as dsh-cyrene-hero
+# (/cyrene-hero, /cyrene-bgm, /cyrene-wallpaper, /cyrene-fonts) plus the new
+# character routes (/character-agent/registry.json, /character-agent/mode,
+# /character-agent/fat-fish/*, /character-agent/diag).
+#
+# This bundle REPLACES dsh-cyrene-hero; keep exactly one of the two mounted.
+#
+# 0.2.0 adds no route: the new opacity sliders and the starfield are pure client
+# CSS/canvas, and 大肥鱼's BGM reuses the existing /cyrene-bgm route. The `id` and
+# `name` below are intentionally unchanged from 0.1.2 (same mount point).
+# 0.3.1 adds no route either: the hand-over talks to the skin center's own
+# /api/skin-center/v2/active endpoints from the browser, and yield.css is a client
+# stylesheet, so the host half stays exactly the same.
+- insert:
+    - id: character-agent
+      name: 'dsh-character-agent'
